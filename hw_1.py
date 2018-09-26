@@ -29,7 +29,6 @@ def tokenize_doc(doc):
     return dict(bow)
 ###### END FUNCTION #####
 
-
 def n_word_types(word_counts):
     '''
     return a count of all word types in the corpus
@@ -37,15 +36,12 @@ def n_word_types(word_counts):
     '''
     return len(word_counts)
 
-
 def n_word_tokens(word_counts):
     '''
     return a count of all word tokens in the corpus
     using information from word_counts
     '''
     return int(sum(word_counts.values()))
-
-
 
 class NaiveBayes:
     """A Naive Bayes model for text classification."""
@@ -97,7 +93,7 @@ class NaiveBayes:
         """
         Report a number of statistics after training.
         """
-
+        
         print ("REPORTING CORPUS STATISTICS")
         print ("NUMBER OF DOCUMENTS IN POSITIVE CLASS:", self.class_total_doc_counts[POS_LABEL])
         print ("NUMBER OF DOCUMENTS IN NEGATIVE CLASS:", self.class_total_doc_counts[NEG_LABEL])
@@ -121,13 +117,12 @@ class NaiveBayes:
           - the vocabulary seen so far (self.vocab)
           - the number of documents seen of each label (self.class_total_doc_counts)
         """        
-        
-        for token in bow:
-            self.class_word_counts[label][token] += 1
-        self.class_total_word_counts[label] = int(sum(self.class_word_counts[label].values()))
-        for key in bow.keys(): 
-            self.vocab.add(key)
-            
+
+        for token,value in bow.items():
+            self.class_word_counts[label][token] += value
+            self.vocab.add(token)
+            self.class_total_word_counts[label] += value
+              
         self.class_total_doc_counts[label] += 1
 
     def tokenize_and_update_model(self, doc, label):
@@ -176,6 +171,7 @@ class NaiveBayes:
         Returns the probability of word given label wrt psuedo counts.
         alpha - smoothing parameter
         """
+        
         return (self.class_word_counts[label][word] + alpha)/(self.class_total_word_counts[label] + alpha*len(self.vocab))
 
     def log_likelihood(self, bow, label, alpha):
@@ -188,9 +184,12 @@ class NaiveBayes:
         alpha - float; smoothing parameter
         """
         sum = 0
-        for key, value in bow.items():
-            sum += math.log(self.p_word_given_label_and_alpha(key, label, alpha))
-        
+
+        for key,value in bow.items():
+            if key in self.vocab:
+                # Considering each occurence of a word
+                sum += math.log(self.p_word_given_label_and_alpha(key, label, alpha))
+                
         return sum
 
     def log_prior(self, label):
@@ -208,7 +207,6 @@ class NaiveBayes:
         Computes the unnormalized log posterior (of doc being of class 'label').
         bow - a bag of words (i.e., a tokenized document)
         """
-       
         return self.log_likelihood(bow, label, alpha) + self.log_prior(label)
 
     def classify(self, bow, alpha):
@@ -255,14 +253,15 @@ class NaiveBayes:
                     bow = self.tokenize_doc(content)
                     if self.classify(bow, alpha) == label:
                         correct += 1.0
+                    else:
                         incorrect += 1.0
-                    elif incorrect == 300:
-                        self.one_misclassified_review = content
-                        self.misclassified_label = label
+                        if incorrect == 50:
+                            self.one_misclassified_review = content
+                            self.misclassified_label = label
+                            
                     total += 1.0
         return 100 * correct / total
     
     def get_one_misclassified_review(self):
-        
         print(f'One misclassified review which is actually a {self.misclassified_label}')
         print(self.one_misclassified_review)
